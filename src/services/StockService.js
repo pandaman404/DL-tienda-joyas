@@ -2,7 +2,7 @@ import DB from '../db/db.js';
 import format from 'pg-format';
 import { generateHATEOAS } from '../utils/generateHATEOAS.js';
 
-const getJewelsInStock = async (limit = 10, order_by = 'id_ASC', page = 1) => {
+const getJewelsInStock = async ({ limit = 10, order_by = 'id_ASC', page = 1 }) => {
   const [column, direction] = order_by.split('_');
   const offset = Math.abs((page - 1) * limit);
 
@@ -20,8 +20,30 @@ const getJewelsInStock = async (limit = 10, order_by = 'id_ASC', page = 1) => {
   return response;
 };
 
-const getJewelsInStockByFilter = async () => {
-  const { rows } = await DB.query('SELECT * FROM inventario');
+const getJewelsInStockByFilter = async ({ precio_min = 0, precio_max = 0, categoria = '', metal = '' }) => {
+  let baseQuery = 'SELECT * FROM inventario WHERE 1=1';
+  const values = [];
+
+  if (precio_min > 0) {
+    baseQuery += ' AND precio >= %L';
+    values.push(precio_min);
+  }
+
+  if (precio_max > 0) {
+    baseQuery += ' AND precio <= %L';
+    values.push(precio_max);
+  }
+  if (categoria) {
+    baseQuery += ' AND categoria = %L';
+    values.push(categoria);
+  }
+  if (metal) {
+    baseQuery += ' AND metal = %L';
+    values.push(metal);
+  }
+
+  const formattedQuery = format(baseQuery, ...values);
+  const { rows } = await DB.query(formattedQuery);
   return rows;
 };
 
